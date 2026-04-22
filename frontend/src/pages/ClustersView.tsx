@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
-import { Map, Zap, Layers, Share2, Filter, TrendingUp, BarChart3, Settings, Download, Palette } from 'lucide-react';
+import { Layers, Zap, TrendingUp, BarChart3, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useGenerateClusters } from '../hooks/useTopics';
-import { useSimpleTheme } from '../contexts/SimpleThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { papersService } from '../services/papers';
+import '../styles/design-system.css';
 
 const ClustersView = () => {
-  const { theme } = useSimpleTheme();
   const navigate = useNavigate();
   const [activeCluster, setActiveCluster] = useState<number | null>(null);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('umap');
@@ -58,7 +57,6 @@ const ClustersView = () => {
     setActiveCluster(clusterId);
     const cluster = clusters.find(c => c.id === clusterId);
     if (cluster && 'paper_ids' in cluster && cluster.paper_ids && cluster.paper_ids.length > 0) {
-      // Navigate to first paper in cluster
       navigate(`/chat/${cluster.paper_ids[0]}`);
     }
   };
@@ -68,33 +66,42 @@ const ClustersView = () => {
   };
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: theme.background, color: theme.text }}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: theme.text }}>
-            Advanced Topic Clustering
-          </h1>
-          <p style={{ color: theme.textSecondary }}>
-            Discover research patterns and relationships through AI-powered clustering
-          </p>
+    <div className="min-h-screen bg-pattern relative overflow-hidden flex flex-col">
+      {/* Header */}
+      <header className="relative z-10 border-b-4 border-[#1a1f3a] bg-white/90 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <motion.div 
+              className="flex items-center gap-4"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <button
+                onClick={() => navigate('/')}
+                className="w-10 h-10 border-2 border-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-all flex items-center justify-center"
+              >
+                <ArrowRight className="w-5 h-5 rotate-180" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-black text-[#1a1f3a] leading-tight">ADVANCED CLUSTERING</h1>
+                <p className="text-xs font-mono text-[#6c757d] uppercase tracking-wider">Topic Discovery & Analysis</p>
+              </div>
+            </motion.div>
+          </div>
         </div>
+      </header>
 
+      <main className="flex-1 relative z-10 container mx-auto px-6 py-12 overflow-y-auto">
         {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="p-4 rounded-lg border">
-            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="border-4 border-[#1a1f3a] bg-white p-4">
+            <label className="block font-mono text-sm uppercase tracking-wider text-[#1a1f3a] mb-2">
               Algorithm
             </label>
             <select
               value={selectedAlgorithm}
               onChange={(e) => setSelectedAlgorithm(e.target.value)}
-              className="w-full p-2 rounded border"
-              style={{ 
-                backgroundColor: theme.background, 
-                borderColor: theme.border,
-                color: theme.text
-              }}
+              className="w-full p-2 border-2 border-[#dee2e6] focus:border-[#1a1f3a] outline-none font-mono text-sm bg-transparent"
             >
               <option value="umap">UMAP</option>
               <option value="tsne">t-SNE</option>
@@ -103,8 +110,8 @@ const ClustersView = () => {
             </select>
           </div>
 
-          <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="p-4 rounded-lg border">
-            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+          <div className="border-4 border-[#1a1f3a] bg-white p-4">
+            <label className="block font-mono text-sm uppercase tracking-wider text-[#1a1f3a] mb-2">
               Cluster Count
             </label>
             <input
@@ -113,28 +120,18 @@ const ClustersView = () => {
               onChange={(e) => setClusterCount(parseInt(e.target.value))}
               min="2"
               max="20"
-              className="w-full p-2 rounded border"
-              style={{ 
-                backgroundColor: theme.background, 
-                borderColor: theme.border,
-                color: theme.text
-              }}
+              className="w-full p-2 border-2 border-[#dee2e6] focus:border-[#1a1f3a] outline-none font-mono text-sm bg-transparent"
             />
           </div>
 
-          <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="p-4 rounded-lg border">
-            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+          <div className="border-4 border-[#1a1f3a] bg-white p-4">
+            <label className="block font-mono text-sm uppercase tracking-wider text-[#1a1f3a] mb-2">
               Color Scheme
             </label>
             <select
               value={colorScheme}
               onChange={(e) => setColorScheme(e.target.value)}
-              className="w-full p-2 rounded border"
-              style={{ 
-                backgroundColor: theme.background, 
-                borderColor: theme.border,
-                color: theme.text
-              }}
+              className="w-full p-2 border-2 border-[#dee2e6] focus:border-[#1a1f3a] outline-none font-mono text-sm bg-transparent"
             >
               <option value="material">Material Design</option>
               <option value="vibrant">Vibrant</option>
@@ -143,36 +140,28 @@ const ClustersView = () => {
             </select>
           </div>
 
-          <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="p-4 rounded-lg border">
-            <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+          <div className="border-4 border-[#1a1f3a] bg-white p-4">
+            <label className="block font-mono text-sm uppercase tracking-wider text-[#1a1f3a] mb-2">
               View Mode
             </label>
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('2d')}
-                className={`px-3 py-1 rounded text-sm ${
+                className={`flex-1 py-2 font-mono text-xs uppercase tracking-wider border-2 transition-colors ${
                   viewMode === '2d' 
-                    ? 'text-white' 
-                    : ''
+                    ? 'bg-[#1a1f3a] text-white border-[#1a1f3a]' 
+                    : 'bg-transparent text-[#1a1f3a] border-[#dee2e6] hover:border-[#1a1f3a]'
                 }`}
-                style={{ 
-                  backgroundColor: viewMode === '2d' ? theme.primary : theme.surface,
-                  color: viewMode === '2d' ? '#ffffff' : theme.text
-                }}
               >
                 2D
               </button>
               <button
                 onClick={() => setViewMode('3d')}
-                className={`px-3 py-1 rounded text-sm ${
+                className={`flex-1 py-2 font-mono text-xs uppercase tracking-wider border-2 transition-colors ${
                   viewMode === '3d' 
-                    ? 'text-white' 
-                    : ''
+                    ? 'bg-[#1a1f3a] text-white border-[#1a1f3a]' 
+                    : 'bg-transparent text-[#1a1f3a] border-[#dee2e6] hover:border-[#1a1f3a]'
                 }`}
-                style={{ 
-                  backgroundColor: viewMode === '3d' ? theme.primary : theme.surface,
-                  color: viewMode === '3d' ? '#ffffff' : theme.text
-                }}
               >
                 3D
               </button>
@@ -181,41 +170,39 @@ const ClustersView = () => {
         </div>
 
         {/* Main Visualization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cluster Visualization */}
-          <div className="lg:col-span-2 p-6 rounded-xl border" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold" style={{ color: theme.text }}>
-                Cluster Visualization
-              </h2>
-              <div className="flex gap-2">
+          <div className="lg:col-span-2 border-4 border-[#1a1f3a] bg-white p-6 relative">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-black text-[#1a1f3a] uppercase">Visualization</h2>
+              <div className="flex gap-4">
                 <button
                   onClick={() => setShowLabels(!showLabels)}
-                  className="px-3 py-1 rounded text-sm"
-                  style={{ 
-                    backgroundColor: showLabels ? theme.primary : theme.surface,
-                    color: showLabels ? '#ffffff' : theme.text
-                  }}
+                  className={`px-4 py-2 font-mono text-xs uppercase tracking-wider border-2 transition-colors ${
+                    showLabels 
+                      ? 'bg-[#1a1f3a] text-white border-[#1a1f3a]' 
+                      : 'bg-transparent text-[#1a1f3a] border-[#dee2e6] hover:border-[#1a1f3a]'
+                  }`}
                 >
                   {showLabels ? 'Hide Labels' : 'Show Labels'}
                 </button>
                 <button
                   onClick={handleGenerateClusters}
                   disabled={isPending}
-                  className="px-3 py-1 rounded text-sm text-white"
-                  style={{ backgroundColor: theme.primary }}
+                  className="btn btn-primary"
                 >
-                  {isPending ? 'Generating...' : (clusters.length > 0 ? 'Regenerate' : 'Generate Clusters')}
+                  {isPending ? 'Generating...' : (clusters.length > 0 ? 'Regenerate' : 'Generate')}
                 </button>
               </div>
             </div>
 
             {/* SVG Visualization */}
-            <div className="relative h-96 border rounded-lg flex items-center justify-center" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+            <div className="relative h-[500px] border-4 border-[#dee2e6] bg-[#f8f9fa] flex items-center justify-center overflow-hidden">
               {clusters.length === 0 ? (
-                <div className="text-center" style={{ color: theme.textSecondary }}>
-                  <p className="text-lg font-medium">No clusters generated yet</p>
-                  <p className="text-sm mt-2">Upload some papers first to generate clusters</p>
+                <div className="text-center">
+                  <Layers className="w-16 h-16 text-[#dee2e6] mx-auto mb-4" />
+                  <p className="text-lg font-black text-[#1a1f3a]">NO CLUSTERS GENERATED</p>
+                  <p className="text-sm font-mono text-[#6c757d] uppercase mt-2">Upload papers and click generate</p>
                 </div>
               ) : (
               <svg width="100%" height="100%" viewBox="0 0 100 100">
@@ -234,7 +221,7 @@ const ClustersView = () => {
                           y1={cluster.y}
                           x2={otherCluster.x}
                           y2={otherCluster.y}
-                          stroke={theme.border}
+                          stroke="#dee2e6"
                           strokeWidth="0.5"
                           strokeDasharray="2,2"
                         />
@@ -253,8 +240,8 @@ const ClustersView = () => {
                       r={cluster.size * 8}
                       fill={clusterColors[index % clusterColors.length]}
                       fillOpacity={0.8}
-                      stroke={clusterColors[index % clusterColors.length]}
-                      strokeWidth="2"
+                      stroke="#1a1f3a"
+                      strokeWidth="0.5"
                       style={{ cursor: 'pointer' }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
@@ -267,7 +254,9 @@ const ClustersView = () => {
                         y={cluster.y + cluster.size * 8 + 5}
                         textAnchor="middle"
                         fontSize="3"
-                        fill={theme.text}
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                        fill="#1a1f3a"
                         style={{ pointerEvents: 'none' }}
                       >
                         {cluster.name}
@@ -281,13 +270,11 @@ const ClustersView = () => {
           </div>
 
           {/* Cluster Details */}
-          <div className="p-6 rounded-xl border" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-            <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>
-              Cluster Details
-            </h2>
+          <div className="border-4 border-[#1a1f3a] bg-white p-6 relative">
+            <h2 className="text-xl font-black text-[#1a1f3a] uppercase mb-6">Cluster Details</h2>
             
             {activeCluster ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {(() => {
                   const cluster = clusters.find(c => c.id === activeCluster);
                   if (!cluster) return null;
@@ -295,31 +282,27 @@ const ClustersView = () => {
                   return (
                     <>
                       <div>
-                        <h3 className="font-semibold mb-2" style={{ color: clusterColors[clusters.indexOf(cluster) % clusterColors.length] }}>
+                        <h3 className="text-lg font-black uppercase mb-2" style={{ color: clusterColors[clusters.indexOf(cluster) % clusterColors.length] }}>
                           {cluster.name}
                         </h3>
-                        <div className="space-y-2 text-sm">
-                          <p style={{ color: theme.textSecondary }}>
-                            <strong>Papers:</strong> {cluster.papers}
-                          </p>
-                          <p style={{ color: theme.textSecondary }}>
-                            <strong>Density:</strong> {(cluster.density * 100).toFixed(1)}%
-                          </p>
+                        <div className="flex gap-6 font-mono text-sm text-[#6c757d]">
+                          <p>PAPERS: <span className="font-bold text-[#1a1f3a]">{cluster.papers}</span></p>
+                          <p>DENSITY: <span className="font-bold text-[#1a1f3a]">{(cluster.density * 100).toFixed(1)}%</span></p>
                         </div>
                       </div>
                       
                       <div>
-                        <h4 className="font-medium mb-2" style={{ color: theme.text }}>
+                        <h4 className="font-bold text-[#1a1f3a] uppercase text-sm mb-3 border-b-2 border-[#dee2e6] pb-2">
                           Keywords
                         </h4>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {cluster.keywords.map((keyword, i) => (
                             <span
                               key={i}
-                              className="px-2 py-1 rounded text-xs"
+                              className="px-3 py-1 font-mono text-xs uppercase tracking-wider border-2 border-[#1a1f3a]"
                               style={{ 
                                 backgroundColor: clusterColors[clusters.indexOf(cluster) % clusterColors.length] + '20',
-                                color: clusterColors[clusters.indexOf(cluster) % clusterColors.length]
+                                color: '#1a1f3a'
                               }}
                             >
                               {keyword}
@@ -329,23 +312,20 @@ const ClustersView = () => {
                       </div>
 
                       <div>
-                        <h4 className="font-medium mb-2" style={{ color: theme.text }}>
+                        <h4 className="font-bold text-[#1a1f3a] uppercase text-sm mb-3 border-b-2 border-[#dee2e6] pb-2">
                           Papers in Cluster
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {cluster.paperList.map((paper, i) => (
                             <button
                               key={i}
                               onClick={() => handlePaperClick(paper.id)}
-                              className="w-full text-left p-2 rounded border text-sm hover:opacity-80 transition-opacity"
-                              style={{ 
-                                backgroundColor: theme.background,
-                                borderColor: theme.border,
-                                color: theme.text
-                              }}
+                              className="w-full text-left p-3 border-2 border-[#dee2e6] hover:border-[#1a1f3a] transition-colors group"
                             >
-                              <div className="font-medium">{paper.title}</div>
-                              <div className="text-xs" style={{ color: theme.textSecondary }}>
+                              <div className="font-bold text-[#1a1f3a] group-hover:text-[#c9302c] transition-colors mb-1 line-clamp-1">
+                                {paper.title}
+                              </div>
+                              <div className="font-mono text-xs text-[#6c757d] line-clamp-1">
                                 {paper.authors}
                               </div>
                             </button>
@@ -357,80 +337,82 @@ const ClustersView = () => {
                 })()}
               </div>
             ) : (
-              <div className="text-center py-8" style={{ color: theme.textSecondary }}>
-                <p>Select a cluster from the visualization to view details</p>
+              <div className="text-center py-12 h-full flex flex-col justify-center">
+                <p className="font-mono text-[#6c757d] uppercase tracking-wider border-2 border-dashed border-[#dee2e6] p-6">
+                  Select a cluster from the visualization to view details
+                </p>
               </div>
             )}
           </div>
         </div>
 
         {/* Statistics */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                <Layers size={20} style={{ color: theme.primary }} />
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="border-4 border-[#1a1f3a] bg-white p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#1a1f3a] flex items-center justify-center">
+                <Layers className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: theme.text }}>
+                <p className="text-3xl font-black text-[#1a1f3a] leading-none mb-1">
                   {clusters.length}
                 </p>
-                <p className="text-sm" style={{ color: theme.textSecondary }}>
+                <p className="font-mono text-xs text-[#6c757d] uppercase tracking-wider">
                   Total Clusters
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-                <TrendingUp size={20} style={{ color: theme.primary }} />
+          <div className="border-4 border-[#1a1f3a] bg-white p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#28a745] flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: theme.text }}>
+                <p className="text-3xl font-black text-[#1a1f3a] leading-none mb-1">
                   {clusters.reduce((sum, c) => sum + c.papers, 0)}
                 </p>
-                <p className="text-sm" style={{ color: theme.textSecondary }}>
+                <p className="font-mono text-xs text-[#6c757d] uppercase tracking-wider">
                   Total Papers
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4CAF50' + '20' }}>
-                <BarChart3 size={20} style={{ color: '#4CAF50' }} />
+          <div className="border-4 border-[#1a1f3a] bg-white p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#8b5cf6] flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: theme.text }}>
-                  {(clusters.reduce((sum, c) => sum + c.density, 0) / clusters.length * 100).toFixed(1)}%
+                <p className="text-3xl font-black text-[#1a1f3a] leading-none mb-1">
+                  {clusters.length ? (clusters.reduce((sum, c) => sum + c.density, 0) / clusters.length * 100).toFixed(1) : 0}%
                 </p>
-                <p className="text-sm" style={{ color: theme.textSecondary }}>
+                <p className="font-mono text-xs text-[#6c757d] uppercase tracking-wider">
                   Avg Density
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg border" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ef4444' + '20' }}>
-                <Zap size={20} style={{ color: '#ef4444' }} />
+          <div className="border-4 border-[#1a1f3a] bg-white p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#c9302c] flex items-center justify-center">
+                <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: theme.text }}>
+                <p className="text-2xl font-black text-[#1a1f3a] leading-none mb-1 line-clamp-1">
                   {selectedAlgorithm.toUpperCase()}
                 </p>
-                <p className="text-sm" style={{ color: theme.textSecondary }}>
+                <p className="font-mono text-xs text-[#6c757d] uppercase tracking-wider">
                   Algorithm
                 </p>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

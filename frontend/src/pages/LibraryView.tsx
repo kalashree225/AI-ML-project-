@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Search, Filter, DownloadCloud, TrendingUp, Eye, Share2, MoreVertical, Grid, List, ExternalLink } from 'lucide-react';
+import { BookOpen, Search, Filter, DownloadCloud, TrendingUp, Eye, Share2, MoreVertical, Grid, List, ExternalLink, ArrowLeft } from 'lucide-react';
 import { usePapers, useDeletePaper } from '../hooks/usePapers';
 import { useNavigate } from 'react-router-dom';
-import { useSimpleTheme } from '../contexts/SimpleThemeContext';
+import '../styles/design-system.css';
 
 const LibraryView = () => {
   const navigate = useNavigate();
-  const { theme } = useSimpleTheme();
   const { data: papers } = usePapers();
   const deletePaper = useDeletePaper();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -15,16 +14,14 @@ const LibraryView = () => {
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'citations' | 'relevance'>('date');
   const [filterStatus, setFilterStatus] = useState<'all' | 'ready' | 'processing' | 'failed'>('all');
   const [selectedPapers, setSelectedPapers] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
 
-  // Use real papers from API, fallback to empty array for now
   const papersList = papers && Array.isArray(papers) ? papers : [];
 
   const filteredPapers = papersList.filter(paper => {
     const matchesSearch = !searchQuery || 
       paper.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       paper.authors.some(a => a.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      paper.abstract.toLowerCase().includes(searchQuery.toLowerCase());
+      paper.abstract?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || paper.status === filterStatus;
     
@@ -70,127 +67,116 @@ const LibraryView = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ready': return 'bg-green-100 text-green-700 border-green-200';
-      case 'processing': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'failed': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
   return (
-    <div className="flex-1 w-full flex flex-col p-8 relative z-10 overflow-y-auto">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 w-full max-w-7xl mx-auto">
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-secondary flex items-center justify-center text-white shadow-lg">
-                <BookOpen size={24} />
-              </div>
-              <h1 className="text-4xl font-display font-bold text-text-primary">Advanced Research Library</h1>
-            </div>
-            <p className="text-text-secondary text-lg ml-16">Professional paper management with intelligent search and analytics</p>
-          </div>
-          
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
+    <div className="min-h-screen bg-pattern relative overflow-hidden flex flex-col">
+      {/* Header */}
+      <header className="relative z-10 border-b-4 border-[#1a1f3a] bg-white/90 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <motion.div 
+              className="flex items-center gap-4"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
             >
-              <Filter size={16} />
-              Advanced Filters
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-500 transition-colors shadow-lg">
-              <DownloadCloud size={16} /> Export Library
-            </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-10 h-10 border-2 border-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-all flex items-center justify-center"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-black text-[#1a1f3a] leading-tight">ADVANCED LIBRARY</h1>
+                <p className="text-xs font-mono text-[#6c757d] uppercase tracking-wider">Professional Paper Management</p>
+              </div>
+            </motion.div>
+            
+            <div className="flex gap-4">
+              <button className="px-4 py-2 border-2 border-[#1a1f3a] font-mono text-sm uppercase font-bold text-[#1a1f3a] hover:bg-[#f8f9fa] transition-colors flex items-center gap-2">
+                <Filter size={16} /> Filters
+              </button>
+              <button className="btn btn-primary flex items-center gap-2">
+                <DownloadCloud size={16} /> Export
+              </button>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </header>
 
-      {/* Advanced Search and Filters */}
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
-        transition={{ delay: 0.1 }}
-        className="w-full max-w-7xl mx-auto mb-6"
-      >
-        {/* Search Bar */}
-        <div className="bg-white border-2 border-border rounded-xl p-4 shadow-sm mb-4">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-muted w-5 h-5" />
+      <main className="flex-1 relative z-10 container mx-auto px-6 py-8 overflow-y-auto">
+        {/* Advanced Search and Filters */}
+        <div className="border-4 border-[#1a1f3a] bg-white p-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative flex items-center border-2 border-[#dee2e6] focus-within:border-[#1a1f3a] transition-colors px-3">
+              <Search className="text-[#1a1f3a] w-5 h-5" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search papers by title, author, abstract, DOI, or keywords..."
-                className="w-full pl-12 pr-4 py-3 bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted"
+                placeholder="SEARCH PAPERS BY TITLE, AUTHOR, OR ABSTRACT..."
+                className="w-full pl-3 pr-4 py-3 bg-transparent border-none outline-none font-mono text-sm text-[#1a1f3a] placeholder:text-[#6c757d]"
               />
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <select 
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-lg text-sm bg-white"
+                className="px-4 py-2 border-2 border-[#dee2e6] focus:border-[#1a1f3a] outline-none font-mono text-sm bg-white uppercase"
               >
-                <option value="date">Sort by Date</option>
-                <option value="title">Sort by Title</option>
-                <option value="citations">Sort by Citations</option>
-                <option value="relevance">Sort by Relevance</option>
+                <option value="date">Sort: Date</option>
+                <option value="title">Sort: Title</option>
+                <option value="citations">Sort: Citations</option>
+                <option value="relevance">Sort: Relevance</option>
               </select>
               
               <select 
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-3 py-2 border border-border rounded-lg text-sm bg-white"
+                className="px-4 py-2 border-2 border-[#dee2e6] focus:border-[#1a1f3a] outline-none font-mono text-sm bg-white uppercase"
               >
-                <option value="all">All Status</option>
-                <option value="ready">Ready</option>
-                <option value="processing">Processing</option>
-                <option value="failed">Failed</option>
+                <option value="all">Status: All</option>
+                <option value="ready">Status: Ready</option>
+                <option value="processing">Status: Processing</option>
+                <option value="failed">Status: Failed</option>
               </select>
               
               <button
                 onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="p-2 border border-border rounded-lg hover:bg-surface transition-colors"
+                className="w-12 border-2 border-[#dee2e6] hover:border-[#1a1f3a] flex items-center justify-center transition-colors text-[#1a1f3a]"
               >
-                {viewMode === 'grid' ? <List size={16} /> : <Grid size={16} />}
+                {viewMode === 'grid' ? <List size={20} /> : <Grid size={20} />}
               </button>
             </div>
           </div>
         </div>
-      </motion.div>
 
-      {/* Bulk Actions Bar */}
-      {selectedPapers.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-7xl mx-auto mb-4"
-        >
-          <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-primary-700 font-medium">
-                {selectedPapers.length} paper{selectedPapers.length !== 1 ? 's' : ''} selected
+        {/* Bulk Actions Bar */}
+        {selectedPapers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="border-4 border-[#1a1f3a] bg-[#ffd700] p-4 mb-8 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-6">
+              <span className="font-black text-[#1a1f3a] text-lg">
+                {selectedPapers.length} SELECTED
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => handleBulkAction('export')}
-                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-500 transition-colors"
+                  className="px-4 py-2 border-2 border-[#1a1f3a] bg-white font-mono text-xs uppercase font-bold hover:bg-[#1a1f3a] hover:text-white transition-colors"
                 >
                   Export
                 </button>
                 <button
                   onClick={() => handleBulkAction('bookmark')}
-                  className="px-3 py-1.5 bg-white text-primary-600 border border-primary-200 rounded-lg text-sm hover:bg-primary-50 transition-colors"
+                  className="px-4 py-2 border-2 border-[#1a1f3a] bg-white font-mono text-xs uppercase font-bold hover:bg-[#1a1f3a] hover:text-white transition-colors"
                 >
                   Bookmark
                 </button>
                 <button
                   onClick={() => handleBulkAction('delete')}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
+                  className="px-4 py-2 border-2 border-[#1a1f3a] bg-[#c9302c] text-white font-mono text-xs uppercase font-bold hover:bg-[#d9534f] transition-colors"
                 >
                   Delete
                 </button>
@@ -198,186 +184,161 @@ const LibraryView = () => {
             </div>
             <button
               onClick={() => setSelectedPapers([])}
-              className="text-primary-600 hover:text-primary-700"
+              className="font-mono text-sm font-bold text-[#1a1f3a] hover:underline uppercase"
             >
               Clear Selection
             </button>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Papers Display */}
-      <div className="w-full max-w-7xl mx-auto">
+        {/* Papers Display */}
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sortedPapers.map((paper) => (
               <motion.div
                 key={paper.id}
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ y: -4 }}
-                className="bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all cursor-pointer relative"
+                className="card p-6 border-4 border-[#dee2e6] hover:border-[#1a1f3a] bg-white flex flex-col relative group"
               >
                 {/* Selection Checkbox */}
-                <div className="absolute top-4 left-4">
+                <div className="absolute top-4 left-4 z-10">
                   <input
                     type="checkbox"
                     checked={selectedPapers.includes(paper.id)}
                     onChange={() => handlePaperSelect(paper.id)}
-                    className="w-4 h-4 text-primary-600"
+                    className="w-5 h-5 border-2 border-[#1a1f3a] accent-[#1a1f3a] cursor-pointer"
                   />
                 </div>
                 
                 {/* Status Badge */}
                 <div className="absolute top-4 right-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(paper.status)}`}>
+                  <span className={`px-3 py-1 text-xs font-mono font-bold uppercase border-2 border-[#1a1f3a] ${
+                    paper.status === 'ready' ? 'bg-[#28a745] text-white' :
+                    paper.status === 'failed' ? 'bg-[#c9302c] text-white' :
+                    'bg-[#ffd700] text-[#1a1f3a]'
+                  }`}>
                     {paper.status}
                   </span>
                 </div>
                 
                 {/* Paper Content */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold text-text-primary mb-2 line-clamp-2">
+                <div className="mt-10 flex-1">
+                  <h3 className="text-xl font-black text-[#1a1f3a] mb-3 line-clamp-2 leading-tight group-hover:text-[#c9302c] transition-colors cursor-pointer"
+                      onClick={() => navigate(`/chat/${paper.id}`)}>
                     {paper.title}
                   </h3>
-                  <p className="text-text-secondary text-sm mb-4 line-clamp-3">
-                    {paper.abstract}
-                  </p>
                   
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xs text-text-muted">
-                      {paper.authors.slice(0, 2).join(', ')}
-                      {paper.authors.length > 2 && ' et al.'}
+                  <div className="flex items-center gap-2 mb-4 font-mono text-xs text-[#6c757d] uppercase">
+                    <span className="truncate">
+                      {paper.authors?.slice(0, 2).join(', ')}
+                      {paper.authors?.length > 2 && ' et al.'}
                     </span>
-                    <span className="text-xs text-text-muted">•</span>
-                    <span className="text-xs text-text-muted">{new Date(paper.uploaded_at).getFullYear()}</span>
+                    <span>•</span>
+                    <span>{new Date(paper.uploaded_at).getFullYear()}</span>
                   </div>
                   
-                  {/* Abstract */}
-                  <p className="text-sm text-text-secondary mb-4 line-clamp-2">
-                    {paper.abstract || 'No abstract available'}
+                  <p className="text-sm text-[#1a1f3a] mb-6 line-clamp-3 leading-relaxed">
+                    {paper.abstract || 'No abstract available for this document.'}
                   </p>
-                  
-                  {/* Metrics */}
-                  <div className="flex items-center justify-between text-xs text-text-muted mt-4">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <BookOpen size={12} />
-                        {paper.total_pages || '0'} pages
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <TrendingUp size={12} />
-                        {paper.chunk_count || '0'} chunks
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => navigate(`/chat/${paper.id}`)}
-                        className="p-1 hover:bg-surface rounded transition-colors"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button className="p-1 hover:bg-surface rounded transition-colors">
-                        <Share2 size={14} />
-                      </button>
-                      <button className="p-1 hover:bg-surface rounded transition-colors">
-                        <MoreVertical size={14} />
-                      </button>
-                    </div>
+                </div>
+
+                {/* Metrics & Actions */}
+                <div className="pt-4 border-t-2 border-[#dee2e6] flex items-center justify-between">
+                  <div className="flex gap-4 font-mono text-xs text-[#6c757d] font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen size={14} /> {paper.total_pages || '0'}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <TrendingUp size={14} /> {paper.chunk_count || '0'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/chat/${paper.id}`)}
+                      className="w-8 h-8 border-2 border-[#1a1f3a] flex items-center justify-center text-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-colors"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button className="w-8 h-8 border-2 border-[#1a1f3a] flex items-center justify-center text-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-colors">
+                      <Share2 size={14} />
+                    </button>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
         ) : (
-          <div className="bg-white border border-border rounded-2xl shadow-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-surface border-b border-border">
-                <tr>
-                  <th className="px-6 py-4 text-left">
+          <div className="border-4 border-[#1a1f3a] bg-white overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b-4 border-[#1a1f3a] bg-[#f8f9fa]">
+                  <th className="p-4 w-12">
                     <input
                       type="checkbox"
-                      checked={selectedPapers.length === sortedPapers.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedPapers(sortedPapers.map(p => p.id));
-                        } else {
-                          setSelectedPapers([]);
-                        }
-                      }}
-                      className="text-primary-600"
+                      checked={selectedPapers.length === sortedPapers.length && sortedPapers.length > 0}
+                      onChange={(e) => setSelectedPapers(e.target.checked ? sortedPapers.map(p => p.id) : [])}
+                      className="w-5 h-5 border-2 border-[#1a1f3a] accent-[#1a1f3a] cursor-pointer"
                     />
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-text-muted uppercase">Title & Authors</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-text-muted uppercase">Venue</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-text-muted uppercase">Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-text-muted uppercase">Citations</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-text-muted uppercase">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-text-muted uppercase">Actions</th>
+                  <th className="p-4 font-mono text-sm font-bold uppercase text-[#1a1f3a]">Title & Authors</th>
+                  <th className="p-4 font-mono text-sm font-bold uppercase text-[#1a1f3a]">Date</th>
+                  <th className="p-4 font-mono text-sm font-bold uppercase text-[#1a1f3a]">Status</th>
+                  <th className="p-4 font-mono text-sm font-bold uppercase text-[#1a1f3a] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedPapers.map((paper) => (
-                  <motion.tr
-                    key={paper.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    whileHover={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}
-                    className="border-b border-border hover:bg-surface transition-colors"
-                  >
-                    <td className="px-6 py-4">
+                  <tr key={paper.id} className="border-b-2 border-[#dee2e6] hover:bg-[#f8f9fa] transition-colors group">
+                    <td className="p-4">
                       <input
                         type="checkbox"
                         checked={selectedPapers.includes(paper.id)}
                         onChange={() => handlePaperSelect(paper.id)}
-                        className="text-primary-600"
+                        className="w-5 h-5 border-2 border-[#1a1f3a] accent-[#1a1f3a] cursor-pointer"
                       />
                     </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="font-medium text-text-primary mb-1">{paper.title}</div>
-                        <div className="text-sm text-text-muted">
-                          {paper.authors.slice(0, 3).join(', ')}
-                          {paper.authors.length > 3 && ' et al.'}
-                        </div>
+                    <td className="p-4 py-5">
+                      <div className="font-bold text-[#1a1f3a] text-lg mb-1 group-hover:text-[#c9302c] cursor-pointer transition-colors" onClick={() => navigate(`/chat/${paper.id}`)}>
+                        {paper.title}
+                      </div>
+                      <div className="font-mono text-xs text-[#6c757d]">
+                        {paper.authors?.slice(0, 3).join(', ')}
+                        {paper.authors?.length > 3 && ' et al.'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-text-muted">-</td>
-                    <td className="px-6 py-4 text-sm text-text-muted">{new Date(paper.uploaded_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-sm text-text-muted">
-                      <span className="flex items-center gap-1">
-                        <BookOpen size={12} />
-                        {paper.chunk_count || '0'}
-                      </span>
+                    <td className="p-4 font-mono text-sm text-[#1a1f3a]">
+                      {new Date(paper.uploaded_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(paper.status)}`}>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 text-xs font-mono font-bold uppercase border-2 border-[#1a1f3a] ${
+                        paper.status === 'ready' ? 'bg-[#28a745] text-white' :
+                        paper.status === 'failed' ? 'bg-[#c9302c] text-white' :
+                        'bg-[#ffd700] text-[#1a1f3a]'
+                      }`}>
                         {paper.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="p-4">
+                      <div className="flex justify-end gap-2">
                         <button
                           onClick={() => navigate(`/chat/${paper.id}`)}
-                          className="p-1 hover:bg-surface rounded transition-colors"
+                          className="w-8 h-8 border-2 border-[#1a1f3a] flex items-center justify-center text-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-colors"
                         >
                           <Eye size={14} />
                         </button>
-                        <button className="p-1 hover:bg-surface rounded transition-colors">
-                          <Share2 size={14} />
-                        </button>
-                        <button className="p-1 hover:bg-surface rounded transition-colors">
+                        <button className="w-8 h-8 border-2 border-[#1a1f3a] flex items-center justify-center text-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-colors">
                           <ExternalLink size={14} />
                         </button>
                       </div>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

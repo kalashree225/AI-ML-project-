@@ -1,23 +1,23 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import { Send, AlignLeft, BarChart3, Network, FileDown, ExternalLink, MessageSquare, ListFilter, Bot, Sparkles, Copy, Download, Share2, Maximize2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Send, AlignLeft, BarChart3, Network, FileDown, ExternalLink, MessageSquare, ListFilter, Bot, Sparkles, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as d3 from 'd3';
 import { useChatSession } from '../hooks/useChat';
 import { usePaperSummary } from '../hooks/usePapers';
 import { useCitationGraph } from '../hooks/useCitations';
 import { ChatWebSocket, type WebSocketMessage } from '../services/websocket';
-import { useSimpleTheme } from '../contexts/SimpleThemeContext';
+import '../styles/design-system.css';
 
 const ChatView = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('summary');
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const wsRef = useRef<ChatWebSocket | null>(null);
-  const { theme } = useSimpleTheme();
 
   const { data: session } = useChatSession(id || '');
   const { data: summary } = usePaperSummary(id || '');
@@ -72,7 +72,7 @@ const ChatView = () => {
     }
   }, [input, isStreaming, id, session]);
 
-  // Mock D3 Force Graph Effect
+  // D3 Force Graph Effect
   useEffect(() => {
     if (activeTab !== 'graph' || !svgRef.current || !citationGraph) return;
 
@@ -97,8 +97,8 @@ const ChatView = () => {
     const height = svgRef.current.clientHeight;
 
     const simulation = d3.forceSimulation(nodes as any)
-      .force('link', d3.forceLink(links as any).id((d: any) => d.id).distance(50))
-      .force('charge', d3.forceManyBody().strength(-300))
+      .force('link', d3.forceLink(links as any).id((d: any) => d.id).distance(100))
+      .force('charge', d3.forceManyBody().strength(-400))
       .force('center', d3.forceCenter(width / 2, height / 2));
 
     const link = svg.append('g')
@@ -106,21 +106,22 @@ const ChatView = () => {
       .data(links)
       .enter()
       .append('line')
-      .attr('stroke', theme.border)
-      .attr('stroke-width', 2);
+      .attr('stroke', '#1a1f3a')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '4,4');
 
     const node = svg.append('g')
       .selectAll('circle')
       .data(nodes as any)
       .enter()
       .append('circle')
-      .attr('r', (d: any) => Math.sqrt(d.val) * 2)
+      .attr('r', (d: any) => Math.sqrt(d.val) * 3)
       .attr('fill', (d: any) => {
-        const colors = [theme.primary, '#10b981', '#f59e0b', '#8b5cf6'];
+        const colors = ['#1a1f3a', '#c9302c', '#28a745', '#ffd700'];
         return colors[d.group % 4];
       })
-      .attr('stroke', theme.surface)
-      .attr('stroke-width', 2)
+      .attr('stroke', '#ffffff')
+      .attr('stroke-width', 3)
       .call(d3.drag()
         .on('start', (event: any, d: any) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -143,10 +144,13 @@ const ChatView = () => {
       .enter()
       .append('text')
       .text((d: any) => d.title)
-      .attr('font-size', 10)
-      .attr('fill', theme.text)
+      .attr('font-size', 12)
+      .attr('font-family', 'monospace')
+      .attr('font-weight', 'bold')
+      .attr('fill', '#1a1f3a')
       .attr('text-anchor', 'middle')
-      .attr('dy', -15);
+      .attr('dy', -20)
+      .style('pointer-events', 'none');
 
     simulation.on('tick', () => {
       link
@@ -160,26 +164,33 @@ const ChatView = () => {
         .attr('cy', (d: any) => d.y);
 
       label
-        .attr('x', (d: any) => d.x + 12)
-        .attr('y', (d: any) => d.y + 4);
+        .attr('x', (d: any) => d.x)
+        .attr('y', (d: any) => d.y);
     });
 
     return () => {
       simulation.stop();
     };
-  }, [activeTab, citationGraph, theme]);
+  }, [activeTab, citationGraph]);
 
   return (
-    <div style={{ backgroundColor: theme.background, color: theme.text }} className="flex w-full h-full overflow-hidden relative z-10">
+    <div className="flex w-full h-screen overflow-hidden bg-pattern relative z-10">
       
-      <section style={{ backgroundColor: theme.surface }} className="w-[45%] flex flex-col border-r relative z-20">
-        <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="h-16 flex items-center justify-between px-6 border-b">
-          <div className="flex items-center gap-3">
-            <h2 style={{ color: theme.text }} className="font-semibold">Research Assistant</h2>
-            <span style={{ backgroundColor: theme.primary + '20', color: theme.primary, borderColor: theme.primary + '40' }} className="px-2 py-0.5 rounded text-xs font-medium border">GPT-4 RAG</span>
+      {/* Sidebar - Chat Area */}
+      <section className="w-[45%] flex flex-col border-r-4 border-[#1a1f3a] bg-white relative z-20">
+        <div className="h-16 flex items-center justify-between px-6 border-b-4 border-[#1a1f3a]">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className="w-8 h-8 border-2 border-[#1a1f3a] hover:bg-[#1a1f3a] hover:text-white transition-all flex items-center justify-center"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <h2 className="font-black text-[#1a1f3a] uppercase tracking-wider">Research Assistant</h2>
+            <span className="px-2 py-1 text-xs font-mono font-bold bg-[#1a1f3a] text-white uppercase">GPT-4 RAG</span>
           </div>
-          <button style={{ color: theme.textSecondary }} className="transition-colors">
-            <ListFilter size={18} />
+          <button className="text-[#1a1f3a] hover:text-[#c9302c] transition-colors">
+            <ListFilter size={20} />
           </button>
         </div>
 
@@ -192,31 +203,20 @@ const ChatView = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  msg.role === 'user' ? '' : ''
-                }`} style={{ 
-                  backgroundColor: msg.role === 'user' ? theme.primary : theme.primary,
-                  color: '#ffffff'
-                }}>
-                  {msg.role === 'user' ? <MessageSquare size={14} /> : <Bot size={16} />}
+                <div className={`w-10 h-10 border-2 border-[#1a1f3a] flex items-center justify-center shrink-0 ${
+                  msg.role === 'user' ? 'bg-[#ffd700]' : 'bg-[#1a1f3a] text-white'
+                }`}>
+                  {msg.role === 'user' ? <MessageSquare size={16} /> : <Bot size={18} />}
                 </div>
-                <div className={`max-w-[80%] p-4 rounded-2xl ${
-                  msg.role === 'user' ? '' : 'border'
-                }`} style={{
-                  backgroundColor: msg.role === 'user' ? theme.primary : theme.surface,
-                  borderColor: theme.border,
-                  color: msg.role === 'user' ? '#ffffff' : theme.text
-                }}>
-                  {msg.content}
+                <div className={`max-w-[80%] p-4 border-2 border-[#1a1f3a] ${
+                  msg.role === 'user' ? 'bg-[#f8f9fa]' : 'bg-white'
+                }`}>
+                  <p className="text-[#1a1f3a] font-medium leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                   
                   {msg.role === 'assistant' && (
-                    <div className="mt-3 pt-3 flex gap-2" style={{ borderTop: `1px solid ${theme.border}20` }}>
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:cursor-pointer transition-colors" style={{
-                        backgroundColor: theme.primary + '10',
-                        borderColor: theme.primary + '30',
-                        color: theme.primary
-                      }}>
-                        <ExternalLink size={10} /> Page 3
+                    <div className="mt-4 pt-3 border-t-2 border-[#dee2e6] flex gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 border border-[#1a1f3a] bg-[#f8f9fa] text-xs font-mono uppercase hover:bg-[#1a1f3a] hover:text-white transition-colors cursor-pointer">
+                        <ExternalLink size={12} /> Source
                       </span>
                     </div>
                   )}
@@ -226,12 +226,11 @@ const ChatView = () => {
           </AnimatePresence>
         </div>
 
-        <div style={{ backgroundColor: theme.surface, borderColor: theme.border }} className="p-4 border-t">
-          <div className="relative flex items-end rounded-xl focus-within:border-primary-500 transition-all px-2 py-2" style={{ backgroundColor: theme.background, border: `2px solid ${theme.border}` }}>
+        <div className="p-6 border-t-4 border-[#1a1f3a] bg-white">
+          <div className="relative flex items-end border-4 border-[#1a1f3a] bg-[#f8f9fa] focus-within:border-[#c9302c] transition-colors p-2 group">
             <textarea
-              className="w-full bg-transparent border-none outline-none resize-none px-4 py-2 max-h-32 min-h-[44px]"
-              style={{ color: theme.text }}
-              placeholder="Ask a question about methodology, results, or compare with other works..."
+              className="w-full bg-transparent border-none outline-none resize-none px-2 py-2 max-h-32 min-h-[44px] font-mono text-sm text-[#1a1f3a] placeholder:text-[#6c757d]"
+              placeholder="ASK ABOUT METHODOLOGY, RESULTS, OR COMPARISONS..."
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -245,30 +244,28 @@ const ChatView = () => {
               }}
             />
             <button 
-              className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors ml-2 shrink-0 shadow-lg mb-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+              className="flex items-center justify-center w-12 h-12 bg-[#1a1f3a] text-white shrink-0 hover:bg-[#c9302c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-2 border-transparent group-focus-within:border-[#c9302c]"
               onClick={handleSendMessage}
               disabled={isStreaming || !input.trim()}
             >
-              <Send size={18} className="translate-x-[-1px]" />
+              <Send size={20} className="translate-x-[-2px]" />
             </button>
           </div>
         </div>
       </section>
 
-      <section className="flex-1 flex flex-col relative z-10 w-[55%]" style={{ background: `linear-gradient(to bottom right, ${theme.primary}10, ${theme.background})` }}>
-        <div style={{ backgroundColor: theme.surface + 'CC', borderColor: theme.border }} className="h-16 flex items-center px-6 border-b backdrop-blur-md gap-6 overflow-x-auto">
+      {/* Main Content Area */}
+      <section className="flex-1 flex flex-col relative z-10 w-[55%] bg-[#f8f9fa]">
+        <div className="h-16 flex items-center px-6 border-b-4 border-[#1a1f3a] bg-white gap-2 overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 h-full border-b-2 px-2 transition-all font-medium text-sm whitespace-nowrap ${
-                activeTab === tab.id ? '' : 'border-transparent'
+              className={`flex items-center gap-2 h-full px-4 transition-all font-mono text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-4 ${
+                activeTab === tab.id 
+                  ? 'border-[#1a1f3a] text-[#1a1f3a] bg-[#f8f9fa]' 
+                  : 'border-transparent text-[#6c757d] hover:text-[#1a1f3a] hover:bg-[#f8f9fa]'
               }`}
-              style={{
-                borderColor: activeTab === tab.id ? theme.primary : 'transparent',
-                color: activeTab === tab.id ? theme.primary : theme.textSecondary
-              }}
             >
               {tab.icon}
               {tab.name}
@@ -280,37 +277,39 @@ const ChatView = () => {
           
           {/* Summary Tab */}
           {activeTab === 'summary' && summary && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto space-y-6">
-              <div className="p-6 rounded-2xl shadow-sm relative overflow-hidden group" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-                <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: theme.primary }}></div>
-                <h3 className="text-xs uppercase tracking-wider font-bold mb-2" style={{ color: theme.primary }}>Main Contribution</h3>
-                <p className="text-lg font-medium leading-relaxed" style={{ color: theme.text }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto space-y-8">
+              <div className="p-8 border-4 border-[#1a1f3a] bg-white relative">
+                <div className="absolute top-0 left-0 w-4 h-full bg-[#c9302c]"></div>
+                <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[#6c757d] mb-3 ml-4">Main Contribution</h3>
+                <p className="text-xl font-medium leading-relaxed text-[#1a1f3a] ml-4">
                   {summary.sections?.main_contribution || 'Loading...'}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="p-6 rounded-2xl shadow-sm" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-                  <h3 className="text-xs uppercase tracking-wider font-bold mb-4" style={{ color: theme.primary }}>Key Methodology</h3>
-                  <ul className="space-y-3 text-sm" style={{ color: theme.textSecondary }}>
+              <div className="grid grid-cols-2 gap-8">
+                <div className="p-6 border-4 border-[#1a1f3a] bg-white">
+                  <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[#1a1f3a] border-b-2 border-[#1a1f3a] pb-2 mb-4">Key Methodology</h3>
+                  <ul className="space-y-4 text-sm">
                     {summary.sections?.methodology?.map((item: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: theme.primary }} /> {item}
+                      <li key={i} className="flex items-start gap-3">
+                        <div className="w-2 h-2 mt-1.5 shrink-0 bg-[#1a1f3a]" /> 
+                        <span className="font-medium text-[#1a1f3a]">{item}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="p-5 rounded-2xl" style={{ backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' }}>
-                    <h3 className="text-xs uppercase tracking-wider font-bold mb-3" style={{ color: theme.primary }}>Results Summary</h3>
-                    <div className="text-2xl font-display font-bold mb-1" style={{ color: theme.primary }}>{summary.sections?.key_results || 'N/A'}</div>
-                    <p className="text-sm" style={{ color: theme.textSecondary }}>{summary.sections?.key_results || ''}</p>
+                <div className="space-y-8">
+                  <div className="p-6 border-4 border-[#1a1f3a] bg-[#ffd700]">
+                    <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[#1a1f3a] mb-2">Results Summary</h3>
+                    <p className="text-[#1a1f3a] font-medium">
+                      {summary.sections?.key_results || 'Results not available'}
+                    </p>
                   </div>
                   {summary.sections?.limitations && (
-                    <div className="p-5 rounded-2xl" style={{ backgroundColor: '#ef444410', borderColor: '#ef444430' }}>
-                      <h3 className="text-xs uppercase tracking-wider font-bold mb-3" style={{ color: '#ef4444' }}>Limitations</h3>
-                      <p className="text-sm leading-relaxed" style={{ color: theme.text }}>
+                    <div className="p-6 border-4 border-[#1a1f3a] bg-white">
+                      <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[#c9302c] mb-2">Limitations</h3>
+                      <p className="text-sm font-medium leading-relaxed text-[#1a1f3a]">
                         {summary.sections.limitations}
                       </p>
                     </div>
@@ -322,26 +321,26 @@ const ChatView = () => {
 
           {/* Graph Tab */}
           {activeTab === 'graph' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex flex-col pt-8">
-              <div className="px-8 flex justify-between items-center mb-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex flex-col p-8">
+              <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-xl font-medium mb-1" style={{ color: theme.text }}>Advanced Citation Network</h3>
-                  <p className="text-sm" style={{ color: theme.textSecondary }}>Interactive research paper relationship visualization</p>
+                  <h3 className="text-2xl font-black text-[#1a1f3a] uppercase">Citation Network</h3>
+                  <p className="font-mono text-sm text-[#6c757d] uppercase tracking-wider">Interactive relationship visualization</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <select className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}>
+                <div className="flex items-center gap-4">
+                  <select className="px-4 py-2 border-2 border-[#1a1f3a] bg-white font-mono text-sm uppercase tracking-wider outline-none">
                     <option>Force-Directed Layout</option>
                     <option>Circular Layout</option>
                     <option>Hierarchical Layout</option>
                     <option>Cluster Layout</option>
                   </select>
-                  <button className="px-3 py-1 rounded-lg text-sm transition-colors" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>
+                  <button className="btn btn-primary px-6 py-2">
                     Export Graph
                   </button>
                 </div>
               </div>
               
-              <div className="flex-1 w-full rounded-3xl overflow-hidden mt-4 border-2 mx-8 mb-8 relative shadow-inner" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
+              <div className="flex-1 w-full border-4 border-[#1a1f3a] bg-white relative overflow-hidden">
                 <svg ref={svgRef} className="w-full h-full cursor-grab active:cursor-grabbing"></svg>
               </div>
             </motion.div>
