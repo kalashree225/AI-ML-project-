@@ -5,6 +5,7 @@ export const useCitationGraph = (paperIds?: string[]) => {
   return useQuery({
     queryKey: ['citations', 'graph', paperIds],
     queryFn: () => citationsService.getCitationGraph(paperIds),
+    enabled: paperIds !== undefined && paperIds.length > 0,
   });
 };
 

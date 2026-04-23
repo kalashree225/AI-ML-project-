@@ -56,67 +56,50 @@ class SimplePDFProcessor:
                 'error': str(e)
             }
     
-    def create_text_chunks(self, text: str, paper: Paper) -> List[DocumentChunk]:
-        """Create text chunks from extracted text."""
-        if not text.strip():
-            return []
-        
-        # Clean up text
-        text = re.sub(r'\s+', ' ', text)
-        text = text.strip()
-        
-        chunks = []
-        start = 0
-        
-        while start < len(text):
-            end = start + self.chunk_size
-            
-            if end >= len(text):
-                chunks.append(text[start:])
-                break
-            
-            # Try to break at sentence or word boundary
-            chunk_text = text[start:end]
-            
-            # Look for sentence endings
-            sentence_end = max(
-                chunk_text.rfind('.'),
-                chunk_text.rfind('!'),
-                chunk_text.rfind('?')
-            )
-            
-            if sentence_end > self.chunk_size * 0.7:  # If we found a good break point
-                end = start + sentence_end + 1
-                chunk_text = text[start:end]
-            else:
-                # Look for word boundary
-                word_boundary = chunk_text.rfind(' ')
-                if word_boundary > self.chunk_size * 0.8:
-                    end = start + word_boundary
-                    chunk_text = text[start:end]
-            
-            chunks.append(chunk_text.strip())
-            
-            if start + self.chunk_overlap >= len(text):
-                break
-                
-            start = max(start + 1, end - self.chunk_overlap)
-        
-        # Create DocumentChunk objects
+    def create_text_chunks(self, pages_text: List[Dict], paper: Paper) -> List[DocumentChunk]:
+        """Create text chunks preserving page-level provenance."""
         document_chunks = []
-        for i, chunk_text in enumerate(chunks):
-            if chunk_text.strip():
-                document_chunks.append(
-                    DocumentChunk(
+        chunk_index = 0
+
+        for page_info in pages_text:
+            page_num = page_info['page']
+            text = re.sub(r'\s+', ' ', page_info['text']).strip()
+            if not text:
+                continue
+
+            start = 0
+            while start < len(text):
+                end = start + self.chunk_size
+                if end >= len(text):
+                    chunk_text = text[start:].strip()
+                else:
+                    window = text[start:end]
+                    # Prefer sentence boundary
+                    best = max(window.rfind('.'), window.rfind('!'), window.rfind('?'))
+                    if best > self.chunk_size * 0.7:
+                        end = start + best + 1
+                    else:
+                        wb = window.rfind(' ')
+                        if wb > self.chunk_size * 0.8:
+                            end = start + wb
+                    chunk_text = text[start:end].strip()
+
+                if chunk_text:
+                    document_chunks.append(DocumentChunk(
                         paper=paper,
                         text=chunk_text,
                         section='main',
-                        page_number=1,
-                        chunk_index=i,
-                        token_count=len(chunk_text.split())
-                    )
-                )
-        
+                        page_number=page_num,
+                        chunk_index=chunk_index,
+                        token_count=len(chunk_text.split()),
+                    ))
+                    chunk_index += 1
+
+                next_start = end - self.chunk_overlap
+                if next_start <= start:  # guard against infinite loop
+                    next_start = start + 1
+                start = next_start
+
         return document_chunks
     
     def process_pdf(self, paper: Paper, file_path: str) -> Dict:
@@ -155,8 +138,8 @@ class SimplePDFProcessor:
                         abstract = abstract[:500] + '...'
                     paper.abstract = abstract
             
-            # Create text chunks
-            chunks = self.create_text_chunks(full_text, paper)
+            # Create text chunks with page provenance
+            chunks = self.create_text_chunks(extraction_result['pages'], paper)
             
             # Save chunks
             DocumentChunk.objects.bulk_create(chunks)

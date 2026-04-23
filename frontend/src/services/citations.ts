@@ -28,12 +28,12 @@ export interface CitationGraph {
 export const citationsService = {
   getCitationGraph: async (paperIds?: string[]): Promise<CitationGraph> => {
     const params = paperIds ? { paper_ids: paperIds.join(',') } : {};
-    const { data } = await api.get('/citations/graph', { params });
+    const { data } = await api.get('/citations/graph/', { params });
     return data;
   },
 
   getPaperCitations: async (paperId: string) => {
-    const { data } = await api.get(`/papers/${paperId}/citations`);
+    const { data } = await api.get(`/papers/${paperId}/citations/`);
     return data;
   },
 };

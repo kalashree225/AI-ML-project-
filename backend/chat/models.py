@@ -1,9 +1,10 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from core.models import TenantModel
 
 User = get_user_model()
 
-class ChatSession(models.Model):
+class ChatSession(TenantModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions', null=True, blank=True)
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)

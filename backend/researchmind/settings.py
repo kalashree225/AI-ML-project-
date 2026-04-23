@@ -18,6 +18,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,6 +33,8 @@ INSTALLED_APPS = [
     'chat',
     'citations',
     'topics',
+    'core',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -64,6 +67,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'researchmind.wsgi.application'
+ASGI_APPLICATION = 'researchmind.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Database - SQLite only (no PostgreSQL dependency)
 DATABASES = {
@@ -115,7 +125,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Allow all for demo
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
@@ -125,6 +135,16 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.MultiPartParser',
         'rest_framework.parsers.FormParser',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '60/minute',
+        'user': '200/minute',
+    },
 }
 
 # JWT Configuration
@@ -158,9 +178,19 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# No Celery/Redis configuration - using synchronous processing
+# Cache configuration (in-memory for dev; swap to Redis in prod)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'researchmind-cache',
+    }
+}
 
-# No OAuth configuration - using simple JWT only
+# Security headers (safe for dev; enforce in prod via env)
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+CONTENT_TYPE_NOSNIFF = True
+
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
@@ -179,13 +209,14 @@ MAX_PAPER_SIZE_MB = 10
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
-# Simple logging
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO' if not DEBUG else 'DEBUG')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
     },
@@ -194,36 +225,11 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': 'debug.log',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'papers': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'papers.views': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
+        'django.request': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'papers': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
+        'chat': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
     },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'DEBUG',
-    },
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
 }

@@ -14,6 +14,7 @@ export interface ChatSession {
   created_at: string;
   papers: Array<{ id: string; title: string }>;
   messages?: ChatMessage[];
+  message_count?: number;
 }
 
 export interface SendMessageRequest {
@@ -34,7 +35,7 @@ export const chatService = {
   },
 
   getChatSession: async (sessionId: string): Promise<ChatSession> => {
-    const { data } = await api.get(`/chat/sessions/${sessionId}`);
+    const { data } = await api.get(`/chat/sessions/${sessionId}/`);
     return data;
   },
 
@@ -44,6 +45,6 @@ export const chatService = {
   },
 
   deleteChatSession: async (sessionId: string): Promise<void> => {
-    await api.delete(`/chat/sessions/${sessionId}`);
+    await api.delete(`/chat/sessions/${sessionId}/`);
   },
 };

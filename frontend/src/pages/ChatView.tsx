@@ -39,28 +39,33 @@ const ChatView = () => {
 
   useEffect(() => {
     if (id) {
-      wsRef.current = new ChatWebSocket();
-      wsRef.current.connect(
+      const ws = new ChatWebSocket();
+      wsRef.current = ws;
+      ws.connect(
         id,
         (msg: WebSocketMessage) => {
-          if (msg.type === 'message' && msg.content) {
+          if (msg.type === 'message') {
+            setMessages(prev => [...prev, { role: msg.role || 'assistant', content: msg.content ?? '' }]);
+          } else if (msg.type === 'stream' && msg.content) {
             setMessages(prev => {
-              const lastMsg = prev[prev.length - 1];
-              if (lastMsg?.role === 'assistant') {
-                return [...prev.slice(0, -1), { ...lastMsg, content: (lastMsg.content || '') + msg.content }];
+              const last = prev[prev.length - 1];
+              if (last?.role === 'assistant' && isStreaming) {
+                return [...prev.slice(0, -1), { ...last, content: last.content + msg.content }];
               }
-              return [...prev, { role: 'assistant', content: msg.content || '' }];
+              return [...prev, { role: 'assistant', content: msg.content ?? '' }];
             });
-          } else if (msg.type === 'complete') {
+          } else if (msg.type === 'stream_end') {
             setIsStreaming(false);
           }
         }
       );
 
       return () => {
-        wsRef.current?.disconnect();
+        ws.disconnect();
+        wsRef.current = null;
       };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleSendMessage = useCallback(() => {
@@ -82,19 +87,19 @@ const ChatView = () => {
       group: Math.floor(Math.random() * 4) + 1,
       val: n.citation_count || 20,
     })) || [];
-    
+
     const links = citationGraph.edges?.map(e => ({
       source: e.source,
       target: e.target,
     })) || [];
 
-    if (!svgRef.current || nodes.length === 0) return;
+    if (nodes.length === 0) return;
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
+    svg.selectAll('*').remove(); // clean up before re-render
 
-    const width = svgRef.current.clientWidth;
-    const height = svgRef.current.clientHeight;
+    const width = svgRef.current.clientWidth || 600;
+    const height = svgRef.current.clientHeight || 400;
 
     const simulation = d3.forceSimulation(nodes as any)
       .force('link', d3.forceLink(links as any).id((d: any) => d.id).distance(100))
@@ -116,26 +121,18 @@ const ChatView = () => {
       .enter()
       .append('circle')
       .attr('r', (d: any) => Math.sqrt(d.val) * 3)
-      .attr('fill', (d: any) => {
-        const colors = ['#1a1f3a', '#c9302c', '#28a745', '#ffd700'];
-        return colors[d.group % 4];
-      })
+      .attr('fill', (d: any) => (['#1a1f3a', '#c9302c', '#28a745', '#ffd700'])[d.group % 4])
       .attr('stroke', '#ffffff')
       .attr('stroke-width', 3)
       .call(d3.drag()
         .on('start', (event: any, d: any) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
+          d.fx = d.x; d.fy = d.y;
         })
-        .on('drag', (event: any, d: any) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
+        .on('drag', (event: any, d: any) => { d.fx = event.x; d.fy = event.y; })
         .on('end', (event: any, d: any) => {
           if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
+          d.fx = null; d.fy = null;
         }) as any);
 
     const label = svg.append('g')
@@ -143,8 +140,8 @@ const ChatView = () => {
       .data(nodes as any)
       .enter()
       .append('text')
-      .text((d: any) => d.title)
-      .attr('font-size', 12)
+      .text((d: any) => (d.title as string).slice(0, 30))
+      .attr('font-size', 11)
       .attr('font-family', 'monospace')
       .attr('font-weight', 'bold')
       .attr('fill', '#1a1f3a')
@@ -158,18 +155,13 @@ const ChatView = () => {
         .attr('y1', (d: any) => d.source.y)
         .attr('x2', (d: any) => d.target.x)
         .attr('y2', (d: any) => d.target.y);
-
-      node
-        .attr('cx', (d: any) => d.x)
-        .attr('cy', (d: any) => d.y);
-
-      label
-        .attr('x', (d: any) => d.x)
-        .attr('y', (d: any) => d.y);
+      node.attr('cx', (d: any) => d.x).attr('cy', (d: any) => d.y);
+      label.attr('x', (d: any) => d.x).attr('y', (d: any) => d.y);
     });
 
     return () => {
       simulation.stop();
+      svg.selectAll('*').remove(); // D3 skill: always clean up on unmount
     };
   }, [activeTab, citationGraph]);
 

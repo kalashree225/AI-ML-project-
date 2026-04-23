@@ -85,19 +85,57 @@ const EnhancedUpload = () => {
 
     uploadPDF.mutate(file, {
       onSuccess: (data) => {
-        setUploadProgress({
-          progress: 100,
-          status: 'success',
-          fileName: file.name,
-          error: ''
-        });
-        
-        // Save to localStorage and navigate
-        localStorage.setItem('uploadedPaperId', data.id);
-        
-        setTimeout(() => {
-          navigate(`/chat/${data.id}`);
-        }, 1500);
+        if (data.status === 'processing') {
+          setUploadProgress({
+            progress: 50,
+            status: 'processing',
+            fileName: file.name,
+            error: ''
+          });
+          
+          // Poll for status
+          const intervalId = setInterval(async () => {
+            try {
+              const token = localStorage.getItem('token') || '';
+              const response = await fetch(`http://localhost:8000/api/papers/${data.id}/status/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const statusData = await response.json();
+              
+              if (statusData.status === 'ready') {
+                clearInterval(intervalId);
+                setUploadProgress({
+                  progress: 100,
+                  status: 'success',
+                  fileName: file.name,
+                  error: ''
+                });
+                localStorage.setItem('uploadedPaperId', data.id);
+                setTimeout(() => navigate(`/chat/${data.id}`), 1500);
+              } else if (statusData.status === 'failed') {
+                clearInterval(intervalId);
+                setUploadProgress({
+                  progress: 0,
+                  status: 'error',
+                  fileName: file.name,
+                  error: 'Processing failed on the server'
+                });
+              }
+            } catch (err) {
+              console.error('Polling error:', err);
+            }
+          }, 2000);
+          
+        } else {
+          setUploadProgress({
+            progress: 100,
+            status: 'success',
+            fileName: file.name,
+            error: ''
+          });
+          localStorage.setItem('uploadedPaperId', data.id);
+          setTimeout(() => navigate(`/chat/${data.id}`), 1500);
+        }
       },
       onError: (error) => {
         setUploadProgress({

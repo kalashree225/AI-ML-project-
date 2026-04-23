@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useGenerateClusters } from '../hooks/useTopics';
 import { useNavigate } from 'react-router-dom';
 import { papersService } from '../services/papers';
+import { usePapers } from '../hooks/usePapers';
 import '../styles/design-system.css';
 
 const ClustersView = () => {
@@ -16,6 +17,7 @@ const ClustersView = () => {
   const [colorScheme, setColorScheme] = useState('material');
   const [paperCount, setPaperCount] = useState(0);
   const { mutate: generateClusters, data: clusterData, isPending } = useGenerateClusters();
+  const { data: allPapers } = usePapers();
 
   // Fetch papers count on mount
   useEffect(() => {
@@ -316,20 +318,24 @@ const ClustersView = () => {
                           Papers in Cluster
                         </h4>
                         <div className="space-y-3">
-                          {cluster.paperList.map((paper, i) => (
-                            <button
-                              key={i}
-                              onClick={() => handlePaperClick(paper.id)}
-                              className="w-full text-left p-3 border-2 border-[#dee2e6] hover:border-[#1a1f3a] transition-colors group"
-                            >
-                              <div className="font-bold text-[#1a1f3a] group-hover:text-[#c9302c] transition-colors mb-1 line-clamp-1">
-                                {paper.title}
-                              </div>
-                              <div className="font-mono text-xs text-[#6c757d] line-clamp-1">
-                                {paper.authors}
-                              </div>
-                            </button>
-                          ))}
+                          {cluster.paper_ids?.map((paperId: string, i: number) => {
+                            const paper = allPapers?.find(p => p.id === paperId);
+                            if (!paper) return null;
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => handlePaperClick(paper.id)}
+                                className="w-full text-left p-3 border-2 border-[#dee2e6] hover:border-[#1a1f3a] transition-colors group"
+                              >
+                                <div className="font-bold text-[#1a1f3a] group-hover:text-[#c9302c] transition-colors mb-1 line-clamp-1">
+                                  {paper.title}
+                                </div>
+                                <div className="font-mono text-xs text-[#6c757d] line-clamp-1">
+                                  {paper.authors?.join(', ')}
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     </>

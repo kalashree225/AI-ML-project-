@@ -11,7 +11,7 @@ const LibraryView = () => {
   const deletePaper = useDeletePaper();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'title' | 'citations' | 'relevance'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'title' | 'chunk_count' | 'relevance'>('date');
   const [filterStatus, setFilterStatus] = useState<'all' | 'ready' | 'processing' | 'failed'>('all');
   const [selectedPapers, setSelectedPapers] = useState<string[]>([]);
 
@@ -34,8 +34,8 @@ const LibraryView = () => {
         return new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime();
       case 'title':
         return a.title.localeCompare(b.title);
-      case 'citations':
-        return (b.citations || 0) - (a.citations || 0);
+      case 'chunk_count':
+        return (b.chunk_count || 0) - (a.chunk_count || 0);
       case 'relevance':
       default:
         return 0;
@@ -125,7 +125,7 @@ const LibraryView = () => {
               >
                 <option value="date">Sort: Date</option>
                 <option value="title">Sort: Title</option>
-                <option value="citations">Sort: Citations</option>
+                <option value="chunk_count">Sort: Chunks</option>
                 <option value="relevance">Sort: Relevance</option>
               </select>
               

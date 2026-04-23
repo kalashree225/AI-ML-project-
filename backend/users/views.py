@@ -1,11 +1,15 @@
-from django.shortcuts import redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth import authenticate, get_user_model
+from .serializers import CustomTokenObtainPairSerializer
+User = get_user_model()
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 import os
 
 @api_view(['POST'])
@@ -94,31 +98,31 @@ def register(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def google_login(request):
-    """Redirect to Google OAuth"""
-    return redirect('social:begin', backend='google-oauth2')
+    """Placeholder — OAuth not configured."""
+    return Response({'error': 'Google OAuth is not configured on this server.'}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def github_login(request):
-    """Redirect to GitHub OAuth"""
-    return redirect('social:begin', backend='github')
+    """Placeholder — OAuth not configured."""
+    return Response({'error': 'GitHub OAuth is not configured on this server.'}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def current_user(request):
     """Get current user info"""
-    # Without auth, return a demo user
+    user = request.user
     return Response({
-        'id': '1',
-        'email': 'demo@example.com',
-        'username': 'demo_user',
-        'name': 'Demo User',
+        'id': str(user.id),
+        'email': user.email,
+        'username': user.username,
+        'name': user.get_full_name() or user.username,
         'avatar_url': getattr(user, 'avatar_url', None),
     })
 
 def generate_tokens_for_user(user):
-    """Generate JWT tokens for user"""
-    refresh = RefreshToken.for_user(user)
+    """Generate custom JWT tokens for user"""
+    refresh = CustomTokenObtainPairSerializer.get_token(user)
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token),

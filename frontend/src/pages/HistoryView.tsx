@@ -107,7 +107,7 @@ const HistoryView = () => {
                       </span>
                       <span className="flex items-center gap-2">
                         <MessageSquare size={16} /> 
-                        {session.messages?.length || 0} Messages
+                        {session.message_count || 0} Messages
                       </span>
                     </div>
                   </div>

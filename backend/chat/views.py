@@ -84,34 +84,32 @@ def send_message(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def list_sessions(request):
-    sessions = ChatSession.objects.all().order_by('-updated_at')[:20]
-    
+    sessions = (
+        ChatSession.objects
+        .prefetch_related('messages')
+        .order_by('-updated_at')[:20]
+    )
+
     data = []
     for session in sessions:
-        messages = session.messages.all()
-        paper_ids = []
-        for msg in messages:
-            paper_ids.extend(msg.paper_ids)
-        paper_ids = list(set(paper_ids))
-        
-        papers = Paper.objects.filter(id__in=paper_ids)
-        
-        # Get last message for preview
-        last_message = messages.last() if messages.exists() else None
-        
+        messages = list(session.messages.all())
+        paper_ids = list({pid for msg in messages for pid in msg.paper_ids})
+        papers = Paper.objects.filter(id__in=paper_ids).only('id', 'title', 'status')
+        last_message = messages[-1] if messages else None
+
         data.append({
             'id': str(session.id),
             'title': session.title,
             'created_at': session.created_at.isoformat(),
             'updated_at': session.updated_at.isoformat(),
             'papers': [{'id': str(p.id), 'title': p.title, 'status': p.status} for p in papers],
-            'message_count': messages.count(),
+            'message_count': len(messages),
             'last_message': {
-                'content': last_message.content[:100] + '...' if last_message and len(last_message.content) > 100 else last_message.content if last_message else '',
-                'created_at': last_message.created_at.isoformat() if last_message else None
-            }
+                'content': (last_message.content[:100] + '...') if last_message and len(last_message.content) > 100 else (last_message.content if last_message else ''),
+                'created_at': last_message.created_at.isoformat() if last_message else None,
+            },
         })
-    
+
     return Response(data)
 
 

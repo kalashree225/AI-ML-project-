@@ -79,7 +79,7 @@ export const papersService = {
   },
 
   getPaperStatus: async (paperId: string): Promise<Paper> => {
-    const { data } = await api.get(`/papers/${paperId}/status`);
+    const { data } = await api.get(`/papers/${paperId}/status/`);
     return data;
   },
 
@@ -89,7 +89,7 @@ export const papersService = {
   },
 
   getPaperSummary: async (paperId: string): Promise<PaperSummary> => {
-    const { data } = await api.get(`/papers/${paperId}/summary`);
+    const { data } = await api.get(`/papers/${paperId}/summary/`);
     return data;
   },
 
@@ -101,6 +101,6 @@ export const papersService = {
   },
 
   deletePaper: async (paperId: string): Promise<void> => {
-    await api.delete(`/papers/${paperId}`);
+    await api.delete(`/papers/${paperId}/`);
   },
 };

@@ -2,10 +2,11 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 import uuid
+from core.models import TenantModel
 
 User = get_user_model()
 
-class Paper(models.Model):
+class Paper(TenantModel):
     """Simplified Paper model without vector dependencies."""
     
     STATUS_CHOICES = [
@@ -43,6 +44,7 @@ class DocumentChunk(models.Model):
     page_number = models.IntegerField(null=True, blank=True)
     chunk_index = models.IntegerField()
     token_count = models.IntegerField(default=0)
+    embedding = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     
     class Meta:

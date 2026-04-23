@@ -1,86 +1,91 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django.db import models
+from django.db.models import Count
 from papers.models import Paper, Citation, DocumentChunk
 from papers.sync_tasks import extract_citations_sync
-import re
 from collections import defaultdict
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def citation_graph(request):
     paper_ids = request.GET.get('paper_ids', '').split(',') if request.GET.get('paper_ids') else []
-    
+
     if paper_ids:
-        papers = Paper.objects.filter(id__in=paper_ids)
+        # Fetch ego network (1-hop citations)
+        root_papers = list(Paper.objects.filter(id__in=paper_ids))
+        
+        # Papers cited by root papers
+        cited_by_root = Paper.objects.filter(citations_received__citing_paper__in=root_papers)
+        
+        # Papers citing root papers
+        citing_root = Paper.objects.filter(citations_made__cited_paper__in=root_papers)
+        
+        # Combine all papers (root + 1 hop out + 1 hop in)
+        papers = list(set(root_papers) | set(cited_by_root) | set(citing_root))
     else:
-        papers = Paper.objects.all()[:10]
-    
-    # Build nodes
-    nodes = []
-    for paper in papers:
-        # Count citations for this paper
-        citation_count = Citation.objects.filter(citing_paper=paper).count()
-        
-        nodes.append({
-            'id': str(paper.id),
-            'title': paper.title,
-            'authors': paper.authors,
-            'year': paper.uploaded_at.year,
-            'citation_count': citation_count,
-            'status': paper.status
-        })
-    
-    # Build edges from actual citation relationships
-    edges = []
-    citation_relationships = defaultdict(int)
-    
-    for paper in papers:
-        citations = Citation.objects.filter(citing_paper=paper)
-        
-        for citation in citations:
-            # Check if cited paper is in our dataset
-            if citation.cited_paper and citation.cited_paper in papers:
-                source = str(paper.id)
-                target = str(citation.cited_paper.id)
-                citation_relationships[(source, target)] += 1
-    
-    # Convert relationships to edges
-    for (source, target), weight in citation_relationships.items():
-        edges.append({
-            'source': source,
-            'target': target,
-            'weight': weight,
-            'type': 'citation'
-        })
-    
-    # Add some co-citation relationships (papers citing the same sources)
-    for i, paper1 in enumerate(papers):
-        for paper2 in papers[i+1:]:
-            if paper1 != paper2:
-                # Find common cited papers
-                citations1 = set(Citation.objects.filter(citing_paper=paper1).values_list('cited_paper', flat=True))
-                citations2 = set(Citation.objects.filter(citing_paper=paper2).values_list('cited_paper', flat=True))
-                
-                common_citations = citations1.intersection(citations2)
-                if len(common_citations) > 0:
-                    edges.append({
-                        'source': str(paper1.id),
-                        'target': str(paper2.id),
-                        'weight': len(common_citations),
-                        'type': 'co-citation'
-                    })
-    
+        papers = list(Paper.objects.all()[:50])
+
+    paper_id_set = {str(p.id) for p in papers}
+
+    # Single query for all citation counts
+    citation_counts = {
+        str(row['citing_paper_id']): row['cnt']
+        for row in Citation.objects.filter(citing_paper__in=papers)
+        .values('citing_paper_id')
+        .annotate(cnt=Count('id'))
+    }
+
+    nodes = [
+        {
+            'id': str(p.id),
+            'title': p.title,
+            'authors': p.authors,
+            'year': p.uploaded_at.year,
+            'citation_count': citation_counts.get(str(p.id), 0),
+            'status': p.status,
+        }
+        for p in papers
+    ]
+
+    # Single query for all edges
+    all_citations = Citation.objects.filter(
+        citing_paper__in=papers,
+        cited_paper__in=papers,
+    ).values('citing_paper_id', 'cited_paper_id')
+
+    edge_weights: dict = defaultdict(int)
+    for row in all_citations:
+        src, tgt = str(row['citing_paper_id']), str(row['cited_paper_id'])
+        if src != tgt:
+            edge_weights[(src, tgt)] += 1
+
+    # Co-citation: papers sharing cited targets — single query
+    co_cite: dict = defaultdict(set)
+    for row in Citation.objects.filter(citing_paper__in=papers).values('citing_paper_id', 'cited_paper_id'):
+        if row['cited_paper_id']:
+            co_cite[str(row['citing_paper_id'])].add(row['cited_paper_id'])
+
+    paper_list = [str(p.id) for p in papers]
+    for i, pid1 in enumerate(paper_list):
+        for pid2 in paper_list[i + 1:]:
+            common = len(co_cite.get(pid1, set()) & co_cite.get(pid2, set()))
+            if common > 0:
+                edge_weights[(pid1, pid2)] = edge_weights.get((pid1, pid2), 0) + common
+
+    edges = [
+        {'source': src, 'target': tgt, 'weight': w, 'type': 'citation'}
+        for (src, tgt), w in edge_weights.items()
+    ]
+
     return Response({
         'nodes': nodes,
         'edges': edges,
         'metrics': {
             'total_papers': len(nodes),
-            'total_citations': len([e for e in edges if e['type'] == 'citation']),
-            'total_co_citations': len([e for e in edges if e['type'] == 'co-citation']),
-            'avg_citations': len(edges) / len(nodes) if nodes else 0
-        }
+            'total_citations': len(edges),
+            'avg_citations': len(edges) / len(nodes) if nodes else 0,
+        },
     })
 
 
@@ -89,17 +94,15 @@ def citation_graph(request):
 def paper_citations(request, paper_id):
     try:
         paper = Paper.objects.get(id=paper_id)
-        citations = Citation.objects.filter(citing_paper=paper).order_by('-confidence_score')
+        citations = Citation.objects.filter(citing_paper=paper)
         
         citation_data = []
         for citation in citations:
             citation_info = {
                 'cited_title': citation.cited_title,
-                'context': citation.context,
+                'context': getattr(citation, 'context', ''),
                 'doi': citation.doi,
                 'arxiv_id': citation.arxiv_id,
-                'confidence_score': citation.confidence_score,
-                'extraction_method': citation.extraction_method
             }
             
             # Add cited paper info if available
@@ -135,12 +138,11 @@ def extract_citations(request):
         results = []
         for paper_id in paper_ids:
             try:
-                # Trigger background citation extraction
-                task_result = extract_citations_task.delay(paper_id)
+                # Trigger synchronous citation extraction
+                task_result = extract_citations_sync(paper_id)
                 results.append({
                     'paper_id': paper_id,
-                    'task_id': task_result.id,
-                    'status': 'started'
+                    'status': task_result.get('status', 'started')
                 })
             except Exception as e:
                 results.append({
@@ -165,32 +167,29 @@ def citation_statistics(request):
     try:
         total_papers = Paper.objects.count()
         total_citations = Citation.objects.count()
-        
-        # Top cited papers
-        top_cited = []
-        for paper in Paper.objects.all()[:10]:
-            citation_count = Citation.objects.filter(citing_paper=paper).count()
-            if citation_count > 0:
-                top_cited.append({
-                    'paper_id': str(paper.id),
-                    'title': paper.title,
-                    'citation_count': citation_count
-                })
-        
-        top_cited.sort(key=lambda x: x['citation_count'], reverse=True)
-        
-        # Citation extraction methods
-        extraction_methods = Citation.objects.values('extraction_method').annotate(
-            count=models.Count('extraction_method')
+
+        # Top cited papers — single aggregated query, no N+1
+        from django.db.models import Count as DCount
+        top_cited = (
+            Citation.objects
+            .values('citing_paper__id', 'citing_paper__title')
+            .annotate(citation_count=DCount('id'))
+            .order_by('-citation_count')[:5]
         )
-        
+
         return Response({
             'total_papers': total_papers,
             'total_citations': total_citations,
             'avg_citations_per_paper': total_citations / total_papers if total_papers > 0 else 0,
-            'top_cited_papers': top_cited[:5],
-            'extraction_methods': list(extraction_methods)
+            'top_cited_papers': [
+                {
+                    'paper_id': str(row['citing_paper__id']),
+                    'title': row['citing_paper__title'],
+                    'citation_count': row['citation_count'],
+                }
+                for row in top_cited
+            ],
         })
-        
+
     except Exception as e:
         return Response({'error': str(e)}, status=500)
